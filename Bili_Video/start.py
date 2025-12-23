@@ -4,13 +4,26 @@ import subprocess
 import threading
 from pathlib import Path
 from typing import Tuple, List
+import ctypes
+from pathlib import Path
 
-# 配置项
-SCRIPT_DIR = Path(__file__).parent  # 脚本所在目录
-INPUT_DIR = SCRIPT_DIR / "input"    # 输入目录
-OUTPUT_DIR = SCRIPT_DIR / "output"  # 输出目录
-TEMP_DIR = SCRIPT_DIR / "temp"      # 临时文件目录（存放清理后的m4s）
-FFMPEG_PATH = "ffmpeg"              # ffmpeg路径（若未加入环境变量，需指定绝对路径）
+def get_special_folder_path(folder_id):
+    """获取 Windows 特殊文件夹路径"""
+    SHGFP_TYPE_CURRENT = 0
+    
+    buf = ctypes.create_unicode_buffer(260)
+    ctypes.windll.shell32.SHGetFolderPathW(None, folder_id, None, SHGFP_TYPE_CURRENT, buf)
+    
+    return Path(buf.value)
+
+# Videos 文件夹的 CSIDL（常数ID）
+CSIDL_MYVIDEO = 0x000E
+
+SCRIPT_DIR = Path(__file__).parent                                  # 脚本所在目录
+INPUT_DIR = get_special_folder_path(CSIDL_MYVIDEO) / "bilibili"     # 输入目录
+OUTPUT_DIR = SCRIPT_DIR / "output"                                  # 输出目录
+TEMP_DIR = SCRIPT_DIR / "temp"                                      # 临时文件目录（存放清理后的m4s）
+FFMPEG_PATH = "ffmpeg"                                              # ffmpeg路径（若未加入环境变量，需指定绝对路径）
 
 # 创建必要目录
 for dir_path in [INPUT_DIR, OUTPUT_DIR, TEMP_DIR]:
