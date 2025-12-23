@@ -5,7 +5,8 @@ import threading
 from pathlib import Path
 from typing import Tuple, List
 import ctypes
-from pathlib import Path
+import json
+import re
 
 def get_special_folder_path(folder_id):
     """获取 Windows 特殊文件夹路径"""
@@ -83,6 +84,45 @@ def remove_leading_zeros(input_file: Path, output_file: Path) -> None:
             out_f.write(chunk)
 
 
+def sanitize_filename(name: str, replacement: str = "_") -> str:
+    """
+    清理文件名中不可用于文件系统的字符（Windows/一般跨平台）
+    """
+    if not isinstance(name, str):
+        name = str(name)
+    # 去掉两端空白，并替换非法字符 <>:"/\\|?* 以及控制字符
+    name = name.strip()
+    name = re.sub(r'[<>:"/\\|?*\x00-\x1f]', replacement, name)
+    # 限制长度（防止超长文件名）
+    return name[:200].rstrip()
+
+
+def get_output_filename_from_video_info(folder: Path, fallback_stem: str) -> str:
+    """
+    尝试从 folder/videoInfo.json 中读取 title 和 uname，返回 '{title} - {uname}.mp4'
+    若读取失败则返回 fallback_stem + '.mp4'
+    """
+    info_path = folder / "videoInfo.json"
+    if not info_path.exists():
+        return f"{fallback_stem}.mp4"
+    
+    try:
+        with open(info_path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        tab = data.get("title")
+        uname = data.get("uname")
+        if tab and uname:
+            tab_s = sanitize_filename(tab)
+            uname_s = sanitize_filename(uname)
+            filename = f"{tab_s} - {uname_s}.mp4"
+            return filename
+        else:
+            return f"{fallback_stem}.mp4"
+    except Exception:
+        # 任何解析错误都回退
+        return f"{fallback_stem}.mp4"
+
+
 def process_file_pair(file1: Path, file2: Path) -> None:
     """
     处理单个文件对：清理0字符 → 区分音视频 → 合并为MP4
@@ -106,8 +146,10 @@ def process_file_pair(file1: Path, file2: Path) -> None:
     video_file = temp_file1 if size1 > size2 else temp_file2
     audio_file = temp_file2 if size1 > size2 else temp_file1
     
-    # 步骤3：调用ffmpeg合并
-    output_filename = f"{file1.stem.split('-')[0]}.mp4"
+    # 步骤3：决定输出文件名（优先使用 videoInfo.json 中的 title 和 uname）
+    parent_folder = file1.parent  # 两个文件在同一子文件夹
+    fallback_stem = file1.stem.split('-')[0]
+    output_filename = get_output_filename_from_video_info(parent_folder, fallback_stem)
     output_path = OUTPUT_DIR / output_filename
     
     cmd = [
