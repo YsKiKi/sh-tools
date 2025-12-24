@@ -1,2 +1,4 @@
 Bili_Video/output/
 Bili_Video/temp/
+Bili_Video/__pycache__/
+*.json
