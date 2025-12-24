@@ -1,6 +1,7 @@
 Bili_Video/output/
 Bili_Video/temp/
 Bili_Video/__pycache__/
+Bili_Video/icon.ico
 *.json
 *.spec
 Bili_Video/dist/

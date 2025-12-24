@@ -120,11 +120,21 @@ def process_file_pair(file1: Path, file2: Path, temp_dir: Path, output_dir: Path
     ]
     
     try:
+        # 在Windows上隐藏子进程窗口
+        if os.name == 'nt':
+            startupinfo = subprocess.STARTUPINFO()
+            startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+            startupinfo.wShowWindow = subprocess.SW_HIDE
+            kwargs = {'startupinfo': startupinfo}
+        else:
+            kwargs = {}
+        
         subprocess.run(
             cmd,
             check=True,
             stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL
+            stderr=subprocess.DEVNULL,
+            **kwargs
         )
     except subprocess.CalledProcessError as e:
         raise RuntimeError(f"ffmpeg执行失败：{e}")
