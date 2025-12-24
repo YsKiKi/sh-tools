@@ -6,7 +6,12 @@
 ### 1. 准备文件
 - 下载安装 `ffmpeg` 并将其 `bin` 文件夹添加到 `Path`
 
-### 2. 运行脚本
+### 2. 安装库
+```bash
+pip -m install requirements.txt
+```
+
+### 3. 运行脚本
 ```bash
 python gui.py
 ```

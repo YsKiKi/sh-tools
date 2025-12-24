@@ -3,6 +3,7 @@ import os
 import json
 import ctypes
 import traceback
+import resources
 from pathlib import Path
 from PyQt5.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, 
@@ -10,6 +11,7 @@ from PyQt5.QtWidgets import (
     QGroupBox, QFileDialog, QMessageBox, QTextEdit
 )
 from PyQt5.QtCore import Qt
+from PyQt5.QtGui import QIcon
 from m4s import *
 
 # 获取Windows特殊文件夹路径
@@ -181,8 +183,9 @@ class M4SProcessorGUI(QMainWindow):
     def __init__(self):
         super().__init__()
         # 先设置窗口基础属性
-        self.setWindowTitle('M4S文件处理器')
+        self.setWindowTitle('A+1 Tool')
         self.setGeometry(300, 300, 800, 600)
+        self.setWindowIcon(QIcon(":/icon.ico"))
         
         # 先初始化UI，再初始化配置管理器
         self.initUI()
@@ -197,6 +200,7 @@ class M4SProcessorGUI(QMainWindow):
         self.show_config_info()
     
     def initUI(self):
+        """初始化UI组件"""
         # 创建中央部件
         central_widget = QWidget()
         self.setCentralWidget(central_widget)
@@ -292,7 +296,7 @@ class M4SProcessorGUI(QMainWindow):
         
         # 设置手动编辑后的自动保存
         self.setup_connections()
-    
+
     def update_paths_from_config(self):
         """从配置文件更新路径显示"""
         # 这里只是初始化控件，配置管理器会在之后初始化
@@ -513,7 +517,7 @@ class M4SProcessorGUI(QMainWindow):
 # 主函数
 def main():
     app = QApplication(sys.argv)
-    app.setApplicationName("M4S Processor")
+    app.setApplicationName("A+1 Tool")
     
     window = M4SProcessorGUI()
     window.show()

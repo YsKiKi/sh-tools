@@ -126,7 +126,6 @@ def process_file_pair(file1: Path, file2: Path, temp_dir: Path, output_dir: Path
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL
         )
-        print(f"✅ 合并完成：{output_path}")
     except subprocess.CalledProcessError as e:
         raise RuntimeError(f"ffmpeg执行失败：{e}")
     finally:
