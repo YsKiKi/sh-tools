@@ -8,7 +8,7 @@
 
 ### 2. 安装库
 ```bash
-pip -r install requirements.txt
+pip install -r requirements.txt
 ```
 
 ### 3. 运行脚本
