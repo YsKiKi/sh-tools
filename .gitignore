@@ -6,3 +6,4 @@ Bili_Video/icon.ico
 *.spec
 Bili_Video/dist/
 Bili_Video/build/
+.venv/
