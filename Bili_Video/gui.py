@@ -1,16 +1,13 @@
 import sys
-import os
 import json
 import ctypes
 import traceback
-import resources
 from pathlib import Path
 from PyQt5.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, 
     QHBoxLayout, QLabel, QLineEdit, QPushButton, 
     QGroupBox, QFileDialog, QMessageBox, QTextEdit
 )
-from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QIcon
 from m4s import *
 
