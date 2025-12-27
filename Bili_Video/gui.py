@@ -2,6 +2,7 @@ import sys
 import json
 import ctypes
 import traceback
+import resources  # 图标文件资源
 from pathlib import Path
 from PyQt5.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, 
@@ -220,10 +221,14 @@ class M4SProcessorGUI(QMainWindow):
         
         input_browse_btn = QPushButton("浏览...")
         input_browse_btn.clicked.connect(self.browse_input_folder)
+
+        self.input_open_btn = QPushButton("打开...")
+        self.input_open_btn.clicked.connect(self.open_input_folder)
         
         input_folder_layout.addWidget(input_label)
         input_folder_layout.addWidget(self.input_path_edit)
         input_folder_layout.addWidget(input_browse_btn)
+        input_folder_layout.addWidget(self.input_open_btn)
         
         input_layout.addLayout(input_folder_layout)
         input_group.setLayout(input_layout)
@@ -242,10 +247,14 @@ class M4SProcessorGUI(QMainWindow):
         
         output_browse_btn = QPushButton("浏览...")
         output_browse_btn.clicked.connect(self.browse_output_folder)
+
+        self.output_open_btn = QPushButton("打开...")
+        self.output_open_btn.clicked.connect(self.open_output_folder)
         
         output_folder_layout.addWidget(output_label)
         output_folder_layout.addWidget(self.output_path_edit)
         output_folder_layout.addWidget(output_browse_btn)
+        output_folder_layout.addWidget(self.output_open_btn)
         
         output_layout.addLayout(output_folder_layout)
         output_group.setLayout(output_layout)
@@ -367,6 +376,38 @@ class M4SProcessorGUI(QMainWindow):
             if success:
                 self.log_message(f"输出文件夹已选择并保存: {folder}")
     
+    def open_input_folder(self):
+        path = self.input_path_edit.text().strip()
+        if not path:
+            return
+        folder_path = Path(path)
+        if not folder_path.exists():
+            try:
+                folder_path.mkdir(parents=True,exist_ok=True)
+            except Exception as e:
+                self.log_message(f"错误：无法创建文件夹：{str(e)}")
+                return
+        try:
+            if sys.platform.startswith('win'):
+                os.startfile(folder_path)
+        except Exception as e:
+            error_msg = f"打开文件夹失败：{e}"
+            self.log_message(error_msg)
+
+    def open_output_folder(self):
+        path = self.output_path_edit.text().strip()
+        if not path:
+            return
+        folder_path = Path(path)
+        if not folder_path.exists():
+            return
+        try:
+            if sys.platform.startswith('win'):
+                os.startfile(folder_path)
+        except Exception as e:
+            error_msg = f"打开文件夹失败：{e}"
+            self.log_message(error_msg)
+
     def start_processing(self):
         """开始处理M4S文件"""
         input_path = Path(self.input_path_edit.text())
