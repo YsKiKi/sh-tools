@@ -84,7 +84,7 @@ class ConfigManager:
             if "input_path" in loaded_config:
                 input_path = Path(loaded_config["input_path"])
                 if not input_path.exists():
-                    print(f"警告：保存的输入路径不存在: {input_path}")
+                    print(f"警告: 保存的输入路径不存在: {input_path}")
             
             return loaded_config
             
@@ -385,13 +385,13 @@ class M4SProcessorGUI(QMainWindow):
             try:
                 folder_path.mkdir(parents=True,exist_ok=True)
             except Exception as e:
-                self.log_message(f"错误：无法创建文件夹：{str(e)}")
+                self.log_message(f"错误: 无法创建文件夹: {str(e)}")
                 return
         try:
             if sys.platform.startswith('win'):
                 os.startfile(folder_path)
         except Exception as e:
-            error_msg = f"打开文件夹失败：{e}"
+            error_msg = f"打开文件夹失败: {e}"
             self.log_message(error_msg)
 
     def open_output_folder(self):
@@ -405,7 +405,7 @@ class M4SProcessorGUI(QMainWindow):
             if sys.platform.startswith('win'):
                 os.startfile(folder_path)
         except Exception as e:
-            error_msg = f"打开文件夹失败：{e}"
+            error_msg = f"打开文件夹失败: {e}"
             self.log_message(error_msg)
 
     def start_processing(self):
@@ -446,14 +446,6 @@ class M4SProcessorGUI(QMainWindow):
             self.log_message(f"输出文件夹: {output_path}")
             self.log_message(f"临时文件夹: {temp_dir}")
             
-            # =========================================
-            # 这里是你的处理逻辑
-            # =========================================
-            
-            # 加载配置（根据你的configure_paths函数调整）
-            # 这里假设ffmpeg_path是固定的或从环境获取
-            ffmpeg_path = "ffmpeg"  # 或者你的实际ffmpeg路径
-            
             # 查找m4s文件对
             file_pairs = find_m4s_pairs(input_path)
             
@@ -475,7 +467,7 @@ class M4SProcessorGUI(QMainWindow):
                 
                 # 处理文件对
                 try:
-                    process_file_pair(file1, file2, temp_dir, output_path, ffmpeg_path)
+                    process_file_pair(file1, file2, temp_dir, output_path)
                     self.log_message(f"✅ 文件对处理完成")
                 except Exception as e:
                     self.log_message(f"❌ 处理失败: {e}")
