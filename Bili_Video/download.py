@@ -1,7 +1,3 @@
-"""
-B站视频下载模块
-从 utils_bilibili.js 移植的下载功能
-"""
 import json
 import re
 import os
