@@ -1,10 +1,10 @@
 import os
-import subprocess
 import threading
 import json
 import re
 from pathlib import Path
 from typing import Tuple, List
+import ffmpeg
 
 def find_m4s_pairs(input_dir: Path) -> List[Tuple[Path, Path]]:
     """查找input目录下所有子文件夹中的m4s文件对"""
@@ -29,7 +29,7 @@ def remove_leading_zeros(input_file: Path, output_file: Path) -> None:
     zero_byte = b'\x00'
     
     with open(input_file, "rb") as in_f, open(output_file, "wb") as out_f:
-        # 第一阶段：跳过开头的连续0
+        # 第一阶段: 跳过开头的连续0
         while True:
             chunk = in_f.read(BLOCK_SIZE)
             if not chunk:
@@ -44,7 +44,7 @@ def remove_leading_zeros(input_file: Path, output_file: Path) -> None:
             out_f.write(chunk[non_zero_pos:])
             break
         
-        # 第二阶段：写入剩余所有内容
+        # 第二阶段: 写入剩余所有内容
         while True:
             chunk = in_f.read(BLOCK_SIZE)
             if not chunk:
@@ -82,9 +82,9 @@ def get_output_filename_from_video_info(folder: Path, fallback_stem: str) -> str
         return f"{fallback_stem}.mp4"
 
 
-def process_file_pair(file1: Path, file2: Path, temp_dir: Path, output_dir: Path, ffmpeg_path: str) -> None:
-    """处理单个文件对：清理0字符 → 区分音视频 → 合并为MP4"""
-    # 步骤1：清理文件开头的0（多线程处理）
+def process_file_pair(file1: Path, file2: Path, temp_dir: Path, output_dir: Path) -> None:
+    """处理单个文件对: 清理0字符 → 区分音视频 → 合并为MP4"""
+    # 步骤1: 清理文件开头的0（多线程处理）
     temp_file1 = temp_dir / file1.name
     temp_file2 = temp_dir / file2.name
     
@@ -96,47 +96,23 @@ def process_file_pair(file1: Path, file2: Path, temp_dir: Path, output_dir: Path
     thread1.join()
     thread2.join()
     
-    # 步骤2：区分视频（大文件）和音频（小文件）
+    # 步骤2: 区分视频（大文件）和音频（小文件）
     size1 = temp_file1.stat().st_size
     size2 = temp_file2.stat().st_size
     
     video_file = temp_file1 if size1 > size2 else temp_file2
     audio_file = temp_file2 if size1 > size2 else temp_file1
     
-    # 步骤3：决定输出文件名
+    # 步骤3: 决定输出文件名
     parent_folder = file1.parent
     fallback_stem = file1.stem.split('-')[0]
     output_filename = get_output_filename_from_video_info(parent_folder, fallback_stem)
     output_path = output_dir / output_filename
     
-    cmd = [
-        ffmpeg_path,
-        "-i", str(video_file),
-        "-i", str(audio_file),
-        "-codec", "copy",
-        "-y",  # 覆盖已存在的文件
-        str(output_path)
-    ]
-    
     try:
-        # 在Windows上隐藏子进程窗口
-        if os.name == 'nt':
-            startupinfo = subprocess.STARTUPINFO()
-            startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
-            startupinfo.wShowWindow = subprocess.SW_HIDE
-            kwargs = {'startupinfo': startupinfo}
-        else:
-            kwargs = {}
-        
-        subprocess.run(
-            cmd,
-            check=True,
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
-            **kwargs
-        )
-    except subprocess.CalledProcessError as e:
-        raise RuntimeError(f"ffmpeg执行失败：{e}")
+        ffmpeg.input(str(video_file)).input(str(audio_file)).output(str(output_path), codec='copy', y=True).run(capture_stdout=True, capture_stderr=True)
+    except ffmpeg.Error as e:
+        raise RuntimeError(f"ffmpeg执行失败: {e}")
     finally:
         # 清理临时文件
         temp_file1.unlink(missing_ok=True)
