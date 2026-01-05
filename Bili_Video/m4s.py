@@ -110,7 +110,7 @@ def process_file_pair(file1: Path, file2: Path, temp_dir: Path, output_dir: Path
     output_path = output_dir / output_filename
     
     try:
-        ffmpeg.input(str(video_file)).input(str(audio_file)).output(str(output_path), codec='copy', y=True).run(capture_stdout=True, capture_stderr=True)
+        ffmpeg.input(str(video_file)).input(str(audio_file)).output(str(output_path), codec='copy', y=True).run(capture_stdout=True, capture_stderr=True, quiet=True)
     except ffmpeg.Error as e:
         raise RuntimeError(f"ffmpeg执行失败: {e}")
     finally:

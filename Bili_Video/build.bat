@@ -1,7 +1,7 @@
 @echo off
 echo 正在打包 A+1-Tool...
 
-pyinstaller --windowed --onefile --icon=icon.ico --name="A+1-Tool" gui.py
+pyinstaller --windowed --onefile --icon=icon.ico --name="A+1-Tool" --hidden-import=resources --hidden-import=download --hidden-import=m4s gui.py
 
 echo.
 if errorlevel 1 (
