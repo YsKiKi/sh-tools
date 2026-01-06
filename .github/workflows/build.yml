@@ -1,4 +1,4 @@
-name: 构建和发布
+name: Build and Release
 
 on:
   push:
@@ -17,65 +17,65 @@ jobs:
   build:
     runs-on: windows-latest
     permissions:
-      contents: write  # 需要写入权限来创建标签和发布
+      contents: write  # Required to create tags and releases
       pull-requests: read
     
     steps:
-    - name: 检出代码
+    - name: Checkout code
       uses: actions/checkout@v4
       with:
-        fetch-depth: 0  # 需要完整历史记录用于 GitVersion
+        fetch-depth: 0  # Full history required for GitVersion
         token: ${{ secrets.GITHUB_TOKEN }}
     
-    - name: 设置 Python
+    - name: Set up Python
       uses: actions/setup-python@v5
       with:
         python-version: '3.11'
     
-    - name: 安装 GitVersion
+    - name: Install GitVersion
       uses: gittools/actions/gitversion/setup@v1.0.0
       with:
         versionSpec: '5.x'
     
-    - name: 执行 GitVersion
+    - name: Execute GitVersion
       id: gitversion
       uses: gittools/actions/gitversion/execute@v1.0.0
       with:
         useConfigFile: true
         configFilePath: 'GitVersion.yml'
     
-    - name: 显示版本信息
+    - name: Display version info
       shell: pwsh
       run: |
-        Write-Host "版本号: ${{ steps.gitversion.outputs.major }}.${{ steps.gitversion.outputs.minor }}.${{ steps.gitversion.outputs.patch }}"
-        Write-Host "完整版本: ${{ steps.gitversion.outputs.fullSemVer }}"
-        Write-Host "语义化版本: ${{ steps.gitversion.outputs.semVer }}"
+        Write-Host "Version: ${{ steps.gitversion.outputs.major }}.${{ steps.gitversion.outputs.minor }}.${{ steps.gitversion.outputs.patch }}"
+        Write-Host "Full version: ${{ steps.gitversion.outputs.fullSemVer }}"
+        Write-Host "Semantic version: ${{ steps.gitversion.outputs.semVer }}"
     
-    - name: 安装依赖
+    - name: Install dependencies
       working-directory: ./Bili_Video
       run: |
         python -m pip install --upgrade pip
         pip install -r requirements.txt
         pip install pyinstaller
     
-    - name: 打包应用程序
+    - name: Build application
       working-directory: ./Bili_Video
       run: |
         pyinstaller --windowed --onefile --icon=icon.ico --name="A+1-Tool" --hidden-import=resources --hidden-import=download --hidden-import=m4s gui.py
     
-    - name: 验证构建产物
+    - name: Verify build artifacts
       working-directory: ./Bili_Video
       shell: pwsh
       run: |
         if (Test-Path dist\A+1-Tool.exe) {
-          Write-Host "构建成功！"
+          Write-Host "Build successful!"
           Get-Item dist\A+1-Tool.exe
         } else {
-          Write-Host "构建失败：找不到 A+1-Tool.exe"
+          Write-Host "Build failed: A+1-Tool.exe not found"
           exit 1
         }
     
-    - name: 创建版本标签（仅 main/master 分支）
+    - name: Create version tag
       if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
       shell: pwsh
       env:
@@ -83,23 +83,23 @@ jobs:
       run: |
         $version = "${{ steps.gitversion.outputs.major }}.${{ steps.gitversion.outputs.minor }}.${{ steps.gitversion.outputs.patch }}"
         $tag = "v$version"
-        Write-Host "创建标签: $tag"
+        Write-Host "Creating tag: $tag"
         git config user.name "github-actions[bot]"
         git config user.email "github-actions[bot]@users.noreply.github.com"
-        # 检查标签是否已存在
+        # Check if tag already exists
         $tagExists = git tag -l "$tag"
         if ($tagExists) {
-          Write-Host "标签 $tag 已存在，跳过创建"
+          Write-Host "Tag $tag already exists, skipping creation"
         } else {
-          git tag -a "$tag" -m "版本 $tag"
-          # 使用 token 推送标签
+          git tag -a "$tag" -m "Version $tag"
+          # Push tag using token
           $repo = "${{ github.repository }}"
           git remote set-url origin "https://$env:GITHUB_TOKEN@github.com/$repo.git"
           git push origin "$tag"
-          Write-Host "标签 $tag 创建成功"
+          Write-Host "Tag $tag created successfully"
         }
     
-    - name: 上传构建产物
+    - name: Upload build artifacts
       uses: actions/upload-artifact@v4
       with:
         name: A+1-Tool-v${{ steps.gitversion.outputs.major }}.${{ steps.gitversion.outputs.minor }}.${{ steps.gitversion.outputs.patch }}
@@ -108,22 +108,22 @@ jobs:
           Bili_Video/dist/config.json
         retention-days: 30
     
-    - name: 创建 Release（仅 main/master 分支推送时）
+    - name: Create Release
       if: (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master') && github.event_name == 'push'
       uses: softprops/action-gh-release@v1
       with:
         tag_name: v${{ steps.gitversion.outputs.major }}.${{ steps.gitversion.outputs.minor }}.${{ steps.gitversion.outputs.patch }}
-        name: 版本 v${{ steps.gitversion.outputs.major }}.${{ steps.gitversion.outputs.minor }}.${{ steps.gitversion.outputs.patch }}
+        name: Version v${{ steps.gitversion.outputs.major }}.${{ steps.gitversion.outputs.minor }}.${{ steps.gitversion.outputs.patch }}
         body: |
-          ## 版本 v${{ steps.gitversion.outputs.major }}.${{ steps.gitversion.outputs.minor }}.${{ steps.gitversion.outputs.patch }}
+          ## Version v${{ steps.gitversion.outputs.major }}.${{ steps.gitversion.outputs.minor }}.${{ steps.gitversion.outputs.patch }}
           
-          ### 构建信息
-          - 提交: ${{ github.sha }}
-          - 分支: ${{ github.ref }}
-          - 构建时间: ${{ steps.gitversion.outputs.committedDate }}
+          ### Build Information
+          - Commit: ${{ github.sha }}
+          - Branch: ${{ github.ref }}
+          - Build Date: ${{ steps.gitversion.outputs.committedDate }}
           
-          ### 下载
-          请从 Artifacts 下载构建产物。
+          ### Download
+          Please download the build artifacts from the Assets section.
         files: |
           Bili_Video/dist/A+1-Tool.exe
           Bili_Video/dist/config.json
