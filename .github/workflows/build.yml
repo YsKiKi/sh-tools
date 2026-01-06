@@ -1,0 +1,121 @@
+name: 构建和发布
+
+on:
+  push:
+    branches:
+      - main
+      - master
+    tags:
+      - 'v*'
+  pull_request:
+    branches:
+      - main
+      - master
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+    
+    steps:
+    - name: 检出代码
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0  # 需要完整历史记录用于 GitVersion
+    
+    - name: 设置 Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+    
+    - name: 安装 GitVersion
+      uses: gittools/actions/gitversion/setup@v1.0.0
+      with:
+        versionSpec: '5.x'
+    
+    - name: 执行 GitVersion
+      id: gitversion
+      uses: gittools/actions/gitversion/execute@v1.0.0
+      with:
+        useConfigFile: true
+        configFilePath: 'GitVersion.yml'
+    
+    - name: 显示版本信息
+      run: |
+        echo "版本号: ${{ steps.gitversion.outputs.major }}.${{ steps.gitversion.outputs.minor }}.${{ steps.gitversion.outputs.patch }}"
+        echo "完整版本: ${{ steps.gitversion.outputs.fullSemVer }}"
+        echo "语义化版本: ${{ steps.gitversion.outputs.semVer }}"
+    
+    - name: 安装依赖
+      working-directory: ./Bili_Video
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install pyinstaller
+    
+    - name: 复制配置文件
+      working-directory: ./Bili_Video
+      run: |
+        if not exist dist mkdir dist
+        copy config.json dist\config.json
+    
+    - name: 打包应用程序
+      working-directory: ./Bili_Video
+      run: |
+        pyinstaller --windowed --onefile --icon=icon.ico --name="A+1-Tool" --hidden-import=resources --hidden-import=download --hidden-import=m4s gui.py
+    
+    - name: 验证构建产物
+      working-directory: ./Bili_Video
+      run: |
+        if exist dist\A+1-Tool.exe (
+          echo "构建成功！"
+          dir dist\A+1-Tool.exe
+        ) else (
+          echo "构建失败：找不到 A+1-Tool.exe"
+          exit 1
+        )
+    
+    - name: 创建版本标签（仅 main/master 分支）
+      if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+      run: |
+        $version = "${{ steps.gitversion.outputs.major }}.${{ steps.gitversion.outputs.minor }}.${{ steps.gitversion.outputs.patch }}"
+        $tag = "v$version"
+        echo "创建标签: $tag"
+        git config user.name "github-actions[bot]"
+        git config user.email "github-actions[bot]@users.noreply.github.com"
+        git tag -a "$tag" -m "版本 $tag" || echo "标签已存在或创建失败"
+        git push origin "$tag" || echo "推送标签失败或标签已存在"
+    
+    - name: 上传构建产物
+      uses: actions/upload-artifact@v4
+      with:
+        name: A+1-Tool-v${{ steps.gitversion.outputs.major }}.${{ steps.gitversion.outputs.minor }}.${{ steps.gitversion.outputs.patch }}
+        path: |
+          Bili_Video/dist/A+1-Tool.exe
+          Bili_Video/dist/config.json
+        retention-days: 30
+    
+    - name: 创建 Release（仅 main/master 分支推送时）
+      if: (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master') && github.event_name == 'push'
+      uses: softprops/action-gh-release@v1
+      with:
+        tag_name: v${{ steps.gitversion.outputs.major }}.${{ steps.gitversion.outputs.minor }}.${{ steps.gitversion.outputs.patch }}
+        name: 版本 v${{ steps.gitversion.outputs.major }}.${{ steps.gitversion.outputs.minor }}.${{ steps.gitversion.outputs.patch }}
+        body: |
+          ## 版本 v${{ steps.gitversion.outputs.major }}.${{ steps.gitversion.outputs.minor }}.${{ steps.gitversion.outputs.patch }}
+          
+          ### 构建信息
+          - 提交: ${{ github.sha }}
+          - 分支: ${{ github.ref }}
+          - 构建时间: ${{ steps.gitversion.outputs.committedDate }}
+          
+          ### 下载
+          请从 Artifacts 下载构建产物。
+        files: |
+          Bili_Video/dist/A+1-Tool.exe
+          Bili_Video/dist/config.json
+        draft: false
+        prerelease: false
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
