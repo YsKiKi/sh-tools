@@ -4,17 +4,22 @@ on:
   push:
     branches:
       - main
+  workflow_dispatch:
 
 jobs:
   build:
     runs-on: windows-latest
+    permissions:
+      contents: write
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@v2
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
 
     - name: Set up Python
-      uses: actions/setup-python@v2
+      uses: actions/setup-python@v5
       with:
         python-version: '3.10.11'
 
@@ -27,16 +32,27 @@ jobs:
       run: pip install pyinstaller
 
     - name: Install GitVersion
-      run: |
-        curl -sSL https://github.com/GitTools/GitVersion/releases/download/v5.6.5/gitversion_5.6.5_windows_x64.zip -o gitversion.zip
-        unzip gitversion.zip -d gitversion
-        mv gitversion/gitversion.exe /usr/local/bin/
+      uses: gittools/actions/gitversion/setup@v1.0.6
+      with:
+        versionSpec: '5.x'
 
     - name: Get version using GitVersion
+      id: gitversion
+      uses: gittools/actions/gitversion/execute@v1.0.6
+      with:
+        useConfigFile: true
+
+    - name: Format version number
       id: version
+      shell: pwsh
       run: |
-        VERSION=$(gitversion /showvariable SemVer)
-        echo "VERSION=${VERSION}" >> $GITHUB_ENV
+        $major = "${{ steps.gitversion.outputs.major }}"
+        $minor = "${{ steps.gitversion.outputs.minor }}"
+        $patch = "${{ steps.gitversion.outputs.patch }}"
+        $version = "v${major}.${minor}.${patch}"
+        Write-Host "Version: $version"
+        echo "VERSION=$version" >> $env:GITHUB_ENV
+        echo "version=$version" >> $env:GITHUB_OUTPUT
 
     - name: Build Windows executable
       run: |
@@ -44,12 +60,23 @@ jobs:
         pyinstaller --windowed --onefile --icon=icon.ico --name="A+1-Tool" --hidden-import=resources --hidden-import=download --hidden-import=m4s gui.py
 
     - name: Create release
-      uses: softprops/action-gh-release@v1
+      uses: softprops/action-gh-release@v2
       with:
-        files: Bili_Video/dist/*
+        files: Bili_Video/dist/A+1-Tool.exe
         tag_name: ${{ env.VERSION }}
+        name: Release ${{ env.VERSION }}
+        body: |
+          ## 版本 ${{ env.VERSION }}
+          
+          自动构建的 Windows 可执行文件。
+          
+          ### 下载
+          - [A+1-Tool.exe](Bili_Video/dist/A+1-Tool.exe)
+        draft: false
+        prerelease: false
 
     - name: Clean up
+      shell: pwsh
       run: |
-        rm -rf Bili_Video/build
-        rm -rf Bili_Video/dist
+        Remove-Item -Recurse -Force Bili_Video/build -ErrorAction SilentlyContinue
+        Remove-Item -Recurse -Force Bili_Video/dist -ErrorAction SilentlyContinue
