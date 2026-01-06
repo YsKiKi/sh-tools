@@ -41,10 +41,11 @@ jobs:
         configFilePath: 'GitVersion.yml'
     
     - name: 显示版本信息
+      shell: pwsh
       run: |
-        echo "版本号: ${{ steps.gitversion.outputs.major }}.${{ steps.gitversion.outputs.minor }}.${{ steps.gitversion.outputs.patch }}"
-        echo "完整版本: ${{ steps.gitversion.outputs.fullSemVer }}"
-        echo "语义化版本: ${{ steps.gitversion.outputs.semVer }}"
+        Write-Host "版本号: ${{ steps.gitversion.outputs.major }}.${{ steps.gitversion.outputs.minor }}.${{ steps.gitversion.outputs.patch }}"
+        Write-Host "完整版本: ${{ steps.gitversion.outputs.fullSemVer }}"
+        Write-Host "语义化版本: ${{ steps.gitversion.outputs.semVer }}"
     
     - name: 安装依赖
       working-directory: ./Bili_Video
@@ -55,9 +56,10 @@ jobs:
     
     - name: 复制配置文件
       working-directory: ./Bili_Video
+      shell: pwsh
       run: |
-        if not exist dist mkdir dist
-        copy config.json dist\config.json
+        if (-not (Test-Path dist)) { New-Item -ItemType Directory -Path dist }
+        Copy-Item config.json dist\config.json
     
     - name: 打包应用程序
       working-directory: ./Bili_Video
@@ -66,25 +68,31 @@ jobs:
     
     - name: 验证构建产物
       working-directory: ./Bili_Video
+      shell: pwsh
       run: |
-        if exist dist\A+1-Tool.exe (
-          echo "构建成功！"
-          dir dist\A+1-Tool.exe
-        ) else (
-          echo "构建失败：找不到 A+1-Tool.exe"
+        if (Test-Path dist\A+1-Tool.exe) {
+          Write-Host "构建成功！"
+          Get-Item dist\A+1-Tool.exe
+        } else {
+          Write-Host "构建失败：找不到 A+1-Tool.exe"
           exit 1
-        )
+        }
     
     - name: 创建版本标签（仅 main/master 分支）
       if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+      shell: pwsh
       run: |
         $version = "${{ steps.gitversion.outputs.major }}.${{ steps.gitversion.outputs.minor }}.${{ steps.gitversion.outputs.patch }}"
         $tag = "v$version"
-        echo "创建标签: $tag"
+        Write-Host "创建标签: $tag"
         git config user.name "github-actions[bot]"
         git config user.email "github-actions[bot]@users.noreply.github.com"
-        git tag -a "$tag" -m "版本 $tag" || echo "标签已存在或创建失败"
-        git push origin "$tag" || echo "推送标签失败或标签已存在"
+        try {
+          git tag -a "$tag" -m "版本 $tag"
+          git push origin "$tag"
+        } catch {
+          Write-Host "标签已存在或创建失败"
+        }
     
     - name: 上传构建产物
       uses: actions/upload-artifact@v4
