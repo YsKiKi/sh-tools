@@ -16,12 +16,16 @@ on:
 jobs:
   build:
     runs-on: windows-latest
+    permissions:
+      contents: write  # 需要写入权限来创建标签和发布
+      pull-requests: read
     
     steps:
     - name: 检出代码
       uses: actions/checkout@v4
       with:
         fetch-depth: 0  # 需要完整历史记录用于 GitVersion
+        token: ${{ secrets.GITHUB_TOKEN }}
     
     - name: 设置 Python
       uses: actions/setup-python@v5
@@ -74,17 +78,25 @@ jobs:
     - name: 创建版本标签（仅 main/master 分支）
       if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
       shell: pwsh
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
         $version = "${{ steps.gitversion.outputs.major }}.${{ steps.gitversion.outputs.minor }}.${{ steps.gitversion.outputs.patch }}"
         $tag = "v$version"
         Write-Host "创建标签: $tag"
         git config user.name "github-actions[bot]"
         git config user.email "github-actions[bot]@users.noreply.github.com"
-        try {
+        # 检查标签是否已存在
+        $tagExists = git tag -l "$tag"
+        if ($tagExists) {
+          Write-Host "标签 $tag 已存在，跳过创建"
+        } else {
           git tag -a "$tag" -m "版本 $tag"
+          # 使用 token 推送标签
+          $repo = "${{ github.repository }}"
+          git remote set-url origin "https://$env:GITHUB_TOKEN@github.com/$repo.git"
           git push origin "$tag"
-        } catch {
-          Write-Host "标签已存在或创建失败"
+          Write-Host "标签 $tag 创建成功"
         }
     
     - name: 上传构建产物
