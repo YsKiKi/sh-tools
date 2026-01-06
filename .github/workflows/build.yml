@@ -54,13 +54,6 @@ jobs:
         pip install -r requirements.txt
         pip install pyinstaller
     
-    - name: 复制配置文件
-      working-directory: ./Bili_Video
-      shell: pwsh
-      run: |
-        if (-not (Test-Path dist)) { New-Item -ItemType Directory -Path dist }
-        Copy-Item config.json dist\config.json
-    
     - name: 打包应用程序
       working-directory: ./Bili_Video
       run: |
