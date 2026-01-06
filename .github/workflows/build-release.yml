@@ -3,11 +3,11 @@
 on:
   push:
     branches:
-      - main  
+      - main
 
 jobs:
   build:
-    runs-on: windows-latest  
+    runs-on: windows-latest
 
     steps:
     - name: Checkout code
@@ -16,7 +16,7 @@ jobs:
     - name: Set up Python
       uses: actions/setup-python@v2
       with:
-        python-version: '3.10.11'  
+        python-version: '3.10.11'
 
     - name: Install dependencies
       run: |
@@ -24,7 +24,19 @@ jobs:
         pip install -r Bili_Video/requirements.txt
 
     - name: Install PyInstaller
-      run: pip install pyinstaller  
+      run: pip install pyinstaller
+
+    - name: Install GitVersion
+      run: |
+        curl -sSL https://github.com/GitTools/GitVersion/releases/download/v5.6.5/gitversion_5.6.5_windows_x64.zip -o gitversion.zip
+        unzip gitversion.zip -d gitversion
+        mv gitversion/gitversion.exe /usr/local/bin/
+
+    - name: Get version using GitVersion
+      id: version
+      run: |
+        VERSION=$(gitversion /showvariable SemVer)
+        echo "VERSION=${VERSION}" >> $GITHUB_ENV
 
     - name: Build Windows executable
       run: |
@@ -35,6 +47,7 @@ jobs:
       uses: softprops/action-gh-release@v1
       with:
         files: Bili_Video/dist/*
+        tag_name: ${{ env.VERSION }}
 
     - name: Clean up
       run: |
