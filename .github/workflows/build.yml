@@ -82,68 +82,6 @@ jobs:
         path: Bili_Video/dist/A+1-Tool-windows-x64.exe
         retention-days: 30
 
-  build-windows-arm64:
-    runs-on: windows-latest
-    permissions:
-      contents: write
-      pull-requests: read
-    
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-      with:
-        fetch-depth: 0
-        token: ${{ secrets.GITHUB_TOKEN }}
-    
-    - name: Set up Python
-      uses: actions/setup-python@v5
-      with:
-        python-version: '3.11'
-        architecture: 'ARM64'
-    
-    - name: Install GitVersion
-      uses: gittools/actions/gitversion/setup@v1.0.0
-      with:
-        versionSpec: '5.x'
-    
-    - name: Execute GitVersion
-      id: gitversion
-      uses: gittools/actions/gitversion/execute@v1.0.0
-      with:
-        useConfigFile: true
-        configFilePath: 'GitVersion.yml'
-    
-    - name: Install dependencies
-      working-directory: ./Bili_Video
-      run: |
-        python -m pip install --upgrade pip
-        pip install -r requirements.txt
-        pip install pyinstaller
-    
-    - name: Build Windows ARM64 application
-      working-directory: ./Bili_Video
-      run: |
-        pyinstaller --windowed --onefile --icon=icon.ico --name="A+1-Tool-windows-arm64" --hidden-import=resources --hidden-import=download --hidden-import=m4s gui.py
-    
-    - name: Verify build artifacts
-      working-directory: ./Bili_Video
-      shell: pwsh
-      run: |
-        if (Test-Path dist\A+1-Tool-windows-arm64.exe) {
-          Write-Host "Build successful!"
-          Get-Item dist\A+1-Tool-windows-arm64.exe
-        } else {
-          Write-Host "Build failed: A+1-Tool-windows-arm64.exe not found"
-          exit 1
-        }
-    
-    - name: Upload Windows ARM64 build artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: A+1-Tool-windows-arm64-v${{ steps.gitversion.outputs.major }}.${{ steps.gitversion.outputs.minor }}.${{ steps.gitversion.outputs.patch }}
-        path: Bili_Video/dist/A+1-Tool-windows-arm64.exe
-        retention-days: 30
-
   build-linux-x64:
     runs-on: ubuntu-latest
     permissions:
@@ -190,7 +128,7 @@ jobs:
     - name: Build Linux x64 application
       working-directory: ./Bili_Video
       run: |
-        pyinstaller --windowed --onefile --icon=icon.ico --name="A+1-Tool-linux-x64" --hidden-import=resources --hidden-import=download --hidden-import=m4s gui.py
+        pyinstaller --onefile --icon=icon.ico --name="A+1-Tool-linux-x64" --hidden-import=resources --hidden-import=download --hidden-import=m4s gui.py
     
     - name: Verify build artifacts
       working-directory: ./Bili_Video
@@ -210,75 +148,8 @@ jobs:
         path: Bili_Video/dist/A+1-Tool-linux-x64
         retention-days: 30
 
-  build-linux-arm64:
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-      pull-requests: read
-    
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-      with:
-        fetch-depth: 0
-        token: ${{ secrets.GITHUB_TOKEN }}
-    
-    - name: Set up Python for ARM64
-      uses: actions/setup-python@v5
-      with:
-        python-version: '3.11'
-        architecture: 'ARM64'
-    
-    - name: Install GitVersion
-      uses: gittools/actions/gitversion/setup@v1.0.0
-      with:
-        versionSpec: '5.x'
-    
-    - name: Execute GitVersion
-      id: gitversion
-      uses: gittools/actions/gitversion/execute@v1.0.0
-      with:
-        useConfigFile: true
-        configFilePath: 'GitVersion.yml'
-    
-    - name: Install system dependencies for ARM64
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y libxcb-xinerama0 libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-randr0 libxcb-render-util0 libxcb-shape0 libxcb-sync1 libxcb-xfixes0 libxcb-xkb1 libxkbcommon-x11-0 libxkbcommon0
-        sudo apt-get install -y ffmpeg
-    
-    - name: Install Python dependencies
-      working-directory: ./Bili_Video
-      run: |
-        python -m pip install --upgrade pip
-        pip install -r requirements.txt
-        pip install pyinstaller
-    
-    - name: Build Linux ARM64 application
-      working-directory: ./Bili_Video
-      run: |
-        pyinstaller --windowed --onefile --icon=icon.ico --name="A+1-Tool-linux-arm64" --hidden-import=resources --hidden-import=download --hidden-import=m4s gui.py
-    
-    - name: Verify build artifacts
-      working-directory: ./Bili_Video
-      run: |
-        if [ -f "dist/A+1-Tool-linux-arm64" ]; then
-          echo "Build successful!"
-          ls -la dist/A+1-Tool-linux-arm64
-        else
-          echo "Build failed: A+1-Tool-linux-arm64 not found"
-          exit 1
-        fi
-    
-    - name: Upload Linux ARM64 build artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: A+1-Tool-linux-arm64-v${{ steps.gitversion.outputs.major }}.${{ steps.gitversion.outputs.minor }}.${{ steps.gitversion.outputs.patch }}
-        path: Bili_Video/dist/A+1-Tool-linux-arm64
-        retention-days: 30
-
   create-release:
-    needs: [build-windows-x64, build-windows-arm64, build-linux-x64, build-linux-arm64]
+    needs: [build-windows-x64, build-linux-x64]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -347,17 +218,13 @@ jobs:
           
           ### Supported Platforms
           - Windows x86_64 (64-bit)
-          - Windows ARM64
           - Linux x86_64 (64-bit)
-          - Linux ARM64
           
           ### Download
           Please download the appropriate build for your platform from the Assets section.
         files: |
           artifacts/A+1-Tool-windows-x64-v${{ steps.gitversion.outputs.major }}.${{ steps.gitversion.outputs.minor }}.${{ steps.gitversion.outputs.patch }}/A+1-Tool-windows-x64.exe
-          artifacts/A+1-Tool-windows-arm64-v${{ steps.gitversion.outputs.major }}.${{ steps.gitversion.outputs.minor }}.${{ steps.gitversion.outputs.patch }}/A+1-Tool-windows-arm64.exe
           artifacts/A+1-Tool-linux-x64-v${{ steps.gitversion.outputs.major }}.${{ steps.gitversion.outputs.minor }}.${{ steps.gitversion.outputs.patch }}/A+1-Tool-linux-x64
-          artifacts/A+1-Tool-linux-arm64-v${{ steps.gitversion.outputs.major }}.${{ steps.gitversion.outputs.minor }}.${{ steps.gitversion.outputs.patch }}/A+1-Tool-linux-arm64
         draft: false
         prerelease: false
       env:
