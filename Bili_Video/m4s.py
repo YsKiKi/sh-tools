@@ -117,7 +117,8 @@ def process_file_pair(file1: Path, file2: Path, temp_dir: Path, output_dir: Path
         output = ffmpeg.overwrite_output(output)  # 使用overwrite_output替代y=True
         
         # 直接运行ffmpeg命令
-        ffmpeg.run(output, quiet=True)
+        import subprocess
+        ffmpeg.run(output, quiet=True, creationflags=subprocess.CREATE_NO_WINDOW)
     except ffmpeg.Error as e:
         raise RuntimeError(f"ffmpeg执行失败: {e.stderr}")
     finally:
