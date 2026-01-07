@@ -869,6 +869,7 @@ class M4SProcessorGUI(QMainWindow):
                     self.log_message("正在转换视频格式...")
                     try:
                         import ffmpeg
+                        import subprocess
                         input_stream = ffmpeg.input(str(video_file))
                         output_stream = ffmpeg.output(
                             input_stream,
@@ -876,7 +877,7 @@ class M4SProcessorGUI(QMainWindow):
                             vcodec='copy',
                             acodec='copy'
                         )
-                        ffmpeg.run(ffmpeg.overwrite_output(output_stream), quiet=True, overwrite_output=True)
+                        ffmpeg.run(ffmpeg.overwrite_output(output_stream), quiet=True, overwrite_output=True, creationflags=subprocess.CREATE_NO_WINDOW)
                         Path(video_file).unlink(missing_ok=True)
                         self.log_message("视频格式转换完成")
                     except Exception as e:
