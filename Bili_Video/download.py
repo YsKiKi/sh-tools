@@ -709,15 +709,13 @@ def merge_file_to_mp4(v_full_file_name: str, a_full_file_name: str, output_file_
     合并视频和音频（使用ffmpeg-python库）
     """
     import ffmpeg
-    import subprocess
-    import sys
     
     # 确保输出目录存在
     output_path = Path(output_file_name)
     output_path.parent.mkdir(parents=True, exist_ok=True)
     
     try:
-        # 使用ffmpeg-python构建命令
+        # 使用ffmpeg-python构建流
         video_input = ffmpeg.input(str(v_full_file_name))
         audio_input = ffmpeg.input(str(a_full_file_name))
         
@@ -733,36 +731,8 @@ def merge_file_to_mp4(v_full_file_name: str, a_full_file_name: str, output_file_
         # 覆盖输出文件（-y参数）
         output = ffmpeg.overwrite_output(output)
         
-        # 构建ffmpeg命令
-        cmd = ffmpeg.compile(output)
-        
-        # 跨平台运行ffmpeg命令，隐藏控制台
-        if sys.platform == 'win32':
-            # 在Windows上隐藏终端窗口
-            startupinfo = subprocess.STARTUPINFO()
-            startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
-            startupinfo.wShowWindow = subprocess.SW_HIDE
-            
-            result = subprocess.run(
-                cmd,
-                startupinfo=startupinfo,
-                capture_output=True,
-                text=True,
-                encoding='utf-8',
-                errors='ignore',
-                check=True
-            )
-        else:
-            # 使用start_new_session防止终端附加
-            result = subprocess.run(
-                cmd,
-                capture_output=True,
-                text=True,
-                encoding='utf-8',
-                errors='ignore',
-                check=True,
-                start_new_session=True
-            )
+        # 直接运行ffmpeg命令
+        ffmpeg.run(output, quiet=True)
         
         # 删除临时文件
         if should_delete:
@@ -773,7 +743,7 @@ def merge_file_to_mp4(v_full_file_name: str, a_full_file_name: str, output_file_
                 _log(f"[BILI下载] 删除临时文件失败: {e}")
         
         return {'outputFileName': output_file_name}
-    except subprocess.CalledProcessError as e:
+    except ffmpeg.Error as e:
         error_msg = f"ffmpeg执行失败: {e.stderr}"
         _log(error_msg)
         raise Exception(error_msg)

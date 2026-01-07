@@ -110,46 +110,15 @@ def process_file_pair(file1: Path, file2: Path, temp_dir: Path, output_dir: Path
     output_path = output_dir / output_filename
     
     try:
-        import subprocess
-        import sys
-        
-        # 使用ffmpeg-python构建命令
+        # 使用ffmpeg-python构建流
         video_stream = ffmpeg.input(str(video_file))
         audio_stream = ffmpeg.input(str(audio_file))
         output = ffmpeg.output(video_stream, audio_stream, str(output_path), codec='copy')
         output = ffmpeg.overwrite_output(output)  # 使用overwrite_output替代y=True
         
-        # 构建ffmpeg命令
-        cmd = ffmpeg.compile(output)
-        
-        # 跨平台运行ffmpeg命令，隐藏控制台
-        if sys.platform == 'win32':
-            # 在Windows上隐藏终端窗口
-            startupinfo = subprocess.STARTUPINFO()
-            startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
-            startupinfo.wShowWindow = subprocess.SW_HIDE
-            
-            result = subprocess.run(
-                cmd,
-                startupinfo=startupinfo,
-                capture_output=True,
-                text=True,
-                encoding='utf-8',
-                errors='ignore',
-                check=True
-            )
-        else:
-            # 使用start_new_session防止终端附加
-            result = subprocess.run(
-                cmd,
-                capture_output=True,
-                text=True,
-                encoding='utf-8',
-                errors='ignore',
-                check=True,
-                start_new_session=True
-            )
-    except subprocess.CalledProcessError as e:
+        # 直接运行ffmpeg命令
+        ffmpeg.run(output, quiet=True)
+    except ffmpeg.Error as e:
         raise RuntimeError(f"ffmpeg执行失败: {e.stderr}")
     finally:
         # 清理临时文件
