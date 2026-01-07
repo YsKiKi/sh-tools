@@ -1,7 +1,6 @@
 import sys
 import os
 import json
-import ctypes
 import traceback
 import resources  # 图标文件资源
 from pathlib import Path
@@ -16,13 +15,18 @@ from PyQt5.QtCore import Qt, QThread, pyqtSignal
 from m4s import *
 import download
 
-# 获取Windows特殊文件夹路径
+# 获取跨平台的特殊文件夹路径
 def get_special_folder_path(folder_id):
-    """获取 Windows Videos路径"""
-    SHGFP_TYPE_CURRENT = 0
-    buf = ctypes.create_unicode_buffer(260)
-    ctypes.windll.shell32.SHGetFolderPathW(None, folder_id, None, SHGFP_TYPE_CURRENT, buf)
-    return Path(buf.value)
+    """获取跨平台的Videos路径"""
+    if sys.platform == 'win32':
+        import ctypes
+        SHGFP_TYPE_CURRENT = 0
+        buf = ctypes.create_unicode_buffer(260)
+        ctypes.windll.shell32.SHGetFolderPathW(None, folder_id, None, SHGFP_TYPE_CURRENT, buf)
+        return Path(buf.value)
+    else:  # Linux and other Unix-like systems (暂不适配macOS)
+        videos_path = Path.home() / "Videos"
+        return videos_path
 
 def get_directory():
     """获取脚本文件所在目录"""
@@ -475,13 +479,16 @@ class M4SProcessorGUI(QMainWindow):
         folder_path = Path(path)
         if not folder_path.exists():
             try:
-                folder_path.mkdir(parents=True,exist_ok=True)
+                folder_path.mkdir(parents=True, exist_ok=True)
             except Exception as e:
                 self.log_message(f"错误: 无法创建文件夹: {str(e)}")
                 return
         try:
-            if sys.platform.startswith('win'):
+            if sys.platform == 'win32':
                 os.startfile(folder_path)
+            else:  # Linux and other Unix-like systems (暂不适配macOS)
+                import subprocess
+                subprocess.run(['xdg-open', str(folder_path)], check=True)
         except Exception as e:
             error_msg = f"打开文件夹失败: {e}"
             self.log_message(error_msg)
@@ -494,8 +501,11 @@ class M4SProcessorGUI(QMainWindow):
         if not folder_path.exists():
             return
         try:
-            if sys.platform.startswith('win'):
+            if sys.platform == 'win32':
                 os.startfile(folder_path)
+            else:  # Linux and other Unix-like systems (暂不适配macOS)
+                import subprocess
+                subprocess.run(['xdg-open', str(folder_path)], check=True)
         except Exception as e:
             error_msg = f"打开文件夹失败: {e}"
             self.log_message(error_msg)
