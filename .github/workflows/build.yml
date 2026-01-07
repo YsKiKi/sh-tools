@@ -32,6 +32,22 @@ jobs:
       with:
         python-version: '3.11'
     
+    - name: Cache pip
+      uses: actions/cache@v3
+      with:
+        path: ~\AppData\Local\pip\Cache
+        key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+    
+    - name: Cache PyInstaller
+      uses: actions/cache@v3
+      with:
+        path: ~\AppData\Local\pyinstaller
+        key: ${{ runner.os }}-pyinstaller-${{ hashFiles('**/requirements.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pyinstaller-
+    
     - name: Install GitVersion
       uses: gittools/actions/gitversion/setup@v1.0.0
       with:
@@ -99,6 +115,22 @@ jobs:
       uses: actions/setup-python@v5
       with:
         python-version: '3.11'
+    
+    - name: Cache pip
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+    
+    - name: Cache PyInstaller
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache/pyinstaller
+        key: ${{ runner.os }}-pyinstaller-${{ hashFiles('**/requirements.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pyinstaller-
     
     - name: Install GitVersion
       uses: gittools/actions/gitversion/setup@v1.0.0
