@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Tuple, List
 import ffmpeg
 
+
 def find_m4s_pairs(input_dir: Path) -> List[Tuple[Path, Path]]:
     """查找input目录下所有子文件夹中的m4s文件对"""
     pairs = []
@@ -13,13 +14,14 @@ def find_m4s_pairs(input_dir: Path) -> List[Tuple[Path, Path]]:
         if sub_dir.is_dir():
             m4s_files = list(sub_dir.glob("*.m4s"))
             if len(m4s_files) != 2:
-                raise ValueError(f"子文件夹 {sub_dir.name} 下需存在且仅存在2个.m4s文件，当前找到{len(m4s_files)}个")
-            
+                raise ValueError(
+                    f"子文件夹 {sub_dir.name} 下需存在且仅存在2个.m4s文件，当前找到{len(m4s_files)}个")
+
             pairs.append((m4s_files[0], m4s_files[1]))
-    
+
     if not pairs:
         raise ValueError("input目录下未找到任何有效的子文件夹（包含一对m4s文件）")
-    
+
     return pairs
 
 
@@ -27,23 +29,23 @@ def remove_leading_zeros(input_file: Path, output_file: Path) -> None:
     """高效删除文件开头的连续0字符"""
     BLOCK_SIZE = 1024 * 1024  # 1MB块大小
     zero_byte = b'\x00'
-    
+
     with open(input_file, "rb") as in_f, open(output_file, "wb") as out_f:
         # 第一阶段: 跳过开头的连续0
         while True:
             chunk = in_f.read(BLOCK_SIZE)
             if not chunk:
                 break  # 文件全是0
-            
+
             # 找到第一个非0字节的位置
             non_zero_pos = chunk.find(zero_byte)
             if non_zero_pos == -1:
                 continue  # 该块全是0
-            
+
             # 写入非0部分
             out_f.write(chunk[non_zero_pos:])
             break
-        
+
         # 第二阶段: 写入剩余所有内容
         while True:
             chunk = in_f.read(BLOCK_SIZE)
@@ -66,7 +68,7 @@ def get_output_filename_from_video_info(folder: Path, fallback_stem: str) -> str
     info_path = folder / "videoInfo.json"
     if not info_path.exists():
         return f"{fallback_stem}.mp4"
-    
+
     try:
         with open(info_path, "r", encoding="utf-8") as f:
             data = json.load(f)
@@ -87,38 +89,43 @@ def process_file_pair(file1: Path, file2: Path, temp_dir: Path, output_dir: Path
     # 步骤1: 清理文件开头的0（多线程处理）
     temp_file1 = temp_dir / file1.name
     temp_file2 = temp_dir / file2.name
-    
-    thread1 = threading.Thread(target=remove_leading_zeros, args=(file1, temp_file1))
-    thread2 = threading.Thread(target=remove_leading_zeros, args=(file2, temp_file2))
-    
+
+    thread1 = threading.Thread(
+        target=remove_leading_zeros, args=(file1, temp_file1))
+    thread2 = threading.Thread(
+        target=remove_leading_zeros, args=(file2, temp_file2))
+
     thread1.start()
     thread2.start()
     thread1.join()
     thread2.join()
-    
+
     # 步骤2: 区分视频（大文件）和音频（小文件）
     size1 = temp_file1.stat().st_size
     size2 = temp_file2.stat().st_size
-    
+
     video_file = temp_file1 if size1 > size2 else temp_file2
     audio_file = temp_file2 if size1 > size2 else temp_file1
-    
+
     # 步骤3: 决定输出文件名
     parent_folder = file1.parent
     fallback_stem = file1.stem.split('-')[0]
-    output_filename = get_output_filename_from_video_info(parent_folder, fallback_stem)
+    output_filename = get_output_filename_from_video_info(
+        parent_folder, fallback_stem)
     output_path = output_dir / output_filename
-    
+
     try:
         # 使用ffmpeg-python构建流
         video_stream = ffmpeg.input(str(video_file))
         audio_stream = ffmpeg.input(str(audio_file))
-        output = ffmpeg.output(video_stream, audio_stream, str(output_path), codec='copy')
+        output = ffmpeg.output(video_stream, audio_stream,
+                               str(output_path), codec='copy')
         output = ffmpeg.overwrite_output(output)  # 使用overwrite_output替代y=True
-        
+
         # 直接运行ffmpeg命令
         import subprocess
-        ffmpeg.run(output, quiet=True, creationflags=subprocess.CREATE_NO_WINDOW)
+        ffmpeg.run(output, quiet=True,
+                   creationflags=subprocess.CREATE_NO_WINDOW)
     except ffmpeg.Error as e:
         raise RuntimeError(f"ffmpeg执行失败: {e.stderr}")
     finally:
